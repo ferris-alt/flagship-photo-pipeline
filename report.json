@@ -1,0 +1,405 @@
+{
+ "stock": "P1063A",
+ "model": "birefnet-general",
+ "images": [
+  {
+   "n": 1,
+   "id": "202609-ca479eeb1db843fd8d458169390f6274",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "001-detail-390f6274.jpg",
+   "sec": 0.9
+  },
+  {
+   "n": 2,
+   "id": "202609-885cccb3aff9488985a521d4f840f785",
+   "kind": "exterior",
+   "flags": [
+    "clip=0.96"
+   ],
+   "mask_frac": 0.187,
+   "file": "002-exterior-f840f785.jpg",
+   "sec": 18.4
+  },
+  {
+   "n": 3,
+   "id": "202609-847dcdc1a3ba4a65be46c27e127512df",
+   "kind": "exterior",
+   "flags": [
+    "clip=0.93"
+   ],
+   "mask_frac": 0.118,
+   "file": "003-exterior-127512df.jpg",
+   "sec": 18.8
+  },
+  {
+   "n": 4,
+   "id": "202609-29e2f85bd13e4c2a9186da98dcbd8b3b",
+   "kind": "exterior",
+   "flags": [
+    "clip=0.91"
+   ],
+   "mask_frac": 0.116,
+   "file": "004-exterior-dcbd8b3b.jpg",
+   "sec": 35.5
+  },
+  {
+   "n": 5,
+   "id": "202609-7c8e08404f37430184a46d4847e6ff35",
+   "kind": "exterior",
+   "flags": [
+    "clip=0.80"
+   ],
+   "mask_frac": 0.186,
+   "file": "005-exterior-47e6ff35.jpg",
+   "sec": 17.8
+  },
+  {
+   "n": 6,
+   "id": "202609-01bf28e92bb44250bc9599fd4ec85914",
+   "kind": "detail",
+   "flags": [
+    "clip=0.01",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "006-detail-4ec85914.jpg",
+   "sec": 0.7
+  },
+  {
+   "n": 7,
+   "id": "202609-f509cc0bb27b44d49e1db6925ba0d63e",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "007-detail-5ba0d63e.jpg",
+   "sec": 0.7
+  },
+  {
+   "n": 8,
+   "id": "202609-0e854b6971dc439ead7b972e1d215135",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "008-detail-1d215135.jpg",
+   "sec": 0.4
+  },
+  {
+   "n": 9,
+   "id": "202609-f975fab8a0be41eeb2f14ec1caaf1055",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "009-detail-caaf1055.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 10,
+   "id": "202609-9f551a0874534662b56525f25a7c5437",
+   "kind": "detail",
+   "flags": [
+    "clip=0.23",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "010-detail-5a7c5437.jpg",
+   "sec": 0.4
+  },
+  {
+   "n": 11,
+   "id": "202609-ba5364afbee94cb4bcfab8bfeb4cd580",
+   "kind": "detail",
+   "flags": [
+    "clip=0.01",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "011-detail-eb4cd580.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 12,
+   "id": "202609-6d1aba05d89340c3893e41aea526e33e",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "012-detail-a526e33e.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 13,
+   "id": "202609-4c77d97dc0ed4036a1cdc4df3e06669b",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "013-detail-3e06669b.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 14,
+   "id": "202609-81c07753134e41c1aaddb762dca81ed5",
+   "kind": "detail",
+   "flags": [
+    "clip=0.07",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "014-detail-dca81ed5.jpg",
+   "sec": 0.5
+  },
+  {
+   "n": 15,
+   "id": "202609-6bbd215c63254676a8c64cf2c7241b0e",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "015-detail-c7241b0e.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 16,
+   "id": "202609-b0634c9c08814844ab03fa7ff8199290",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "016-detail-f8199290.jpg",
+   "sec": 0.5
+  },
+  {
+   "n": 17,
+   "id": "202609-43b6f7a87cd442b8bed0603875d5138d",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "017-detail-75d5138d.jpg",
+   "sec": 0.7
+  },
+  {
+   "n": 18,
+   "id": "202609-59224f1827f3421a903de5867b305351",
+   "kind": "detail",
+   "flags": [
+    "clip=0.02",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "018-detail-7b305351.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 19,
+   "id": "202609-2fcdde72c810414e83e5d162188a0b83",
+   "kind": "detail",
+   "flags": [
+    "clip=0.10",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "019-detail-188a0b83.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 20,
+   "id": "202609-d018889d2aa941c9a1c48f639145f8e0",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "020-detail-9145f8e0.jpg",
+   "sec": 0.7
+  },
+  {
+   "n": 21,
+   "id": "202609-eabf1e0a493f410d9a3297f842a6b7c0",
+   "kind": "detail",
+   "flags": [
+    "clip=0.01",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "021-detail-42a6b7c0.jpg",
+   "sec": 0.7
+  },
+  {
+   "n": 22,
+   "id": "202609-84198f68546c41a5902e750020780e50",
+   "kind": "detail",
+   "flags": [
+    "clip=0.03",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "022-detail-20780e50.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 23,
+   "id": "202609-5b57fe0029aa4fffbb6e5c20b83f85a7",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "023-detail-b83f85a7.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 24,
+   "id": "202609-f790fa727f8d4182906a1dfac582aac0",
+   "kind": "detail",
+   "flags": [
+    "clip=0.04",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "024-detail-c582aac0.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 25,
+   "id": "202609-7671ecbdd1dc4faaaafad23b19a6c20a",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "025-detail-19a6c20a.jpg",
+   "sec": 0.5
+  },
+  {
+   "n": 26,
+   "id": "202609-270db7fa131e4508a4cbc410eb1e2e60",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "026-detail-eb1e2e60.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 27,
+   "id": "202609-db135b115264475ca287a9cd9c8d6733",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "027-detail-9c8d6733.jpg",
+   "sec": 0.5
+  },
+  {
+   "n": 28,
+   "id": "202609-659e3880d8ac4074909a40a8e059896c",
+   "kind": "detail",
+   "flags": [
+    "clip=0.01",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "028-detail-e059896c.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 29,
+   "id": "202609-53240f19a7be420c9438760409cbf121",
+   "kind": "exterior",
+   "flags": [
+    "clip=0.98"
+   ],
+   "mask_frac": 0.121,
+   "file": "029-exterior-09cbf121.jpg",
+   "sec": 29.1
+  },
+  {
+   "n": 30,
+   "id": "202609-3252191766db43bcab7e7647cc4cba7d",
+   "kind": "exterior",
+   "flags": [
+    "clip=0.94"
+   ],
+   "mask_frac": 0.189,
+   "file": "030-exterior-cc4cba7d.jpg",
+   "sec": 17.9
+  },
+  {
+   "n": 31,
+   "id": "202609-f2a0cd25d9db4d668426953a4210ec98",
+   "kind": "detail",
+   "flags": [
+    "clip=0.00",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "031-detail-4210ec98.jpg",
+   "sec": 0.6
+  },
+  {
+   "n": 32,
+   "id": "202609-62ac54b2d3b44044945b63195924f91f",
+   "kind": "detail",
+   "flags": [
+    "clip=0.02",
+    "not-whole-car"
+   ],
+   "mask_frac": 0.0,
+   "file": "032-detail-5924f91f.jpg",
+   "sec": 0.5
+  },
+  {
+   "n": 33,
+   "id": "202609-5676e994f93845ff96b62770306f360c",
+   "kind": "detail",
+   "flags": [
+    "clip=0.81",
+    "cropped(b0.00 l0.00 r0.47 t0.00)"
+   ],
+   "mask_frac": 0.24,
+   "file": "033-detail-306f360c.jpg",
+   "sec": 17.7
+  }
+ ],
+ "sheets": [
+  "sheet-01.jpg",
+  "sheet-02.jpg",
+  "sheet-03.jpg",
+  "sheet-04.jpg",
+  "sheet-05.jpg"
+ ],
+ "lead": "202610-19ed28679ee74376bbec62dd923ed347",
+ "count": 33
+}
