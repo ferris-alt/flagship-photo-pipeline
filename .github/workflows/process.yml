@@ -44,12 +44,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: Cache rembg model
+      - name: Cache models (rembg + CLIP)
         uses: actions/cache@v4
         with:
-          path: ~/.u2net
-          key: rembg-${{ github.event.inputs.model }}
-      - run: pip install "rembg[cpu]" pillow numpy requests
+          path: |
+            ~/.u2net
+            ~/.rembg
+            ~/.cache/huggingface
+          key: models-${{ github.event.inputs.model }}-clip-b32
+      - run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install "rembg[cpu]" pillow numpy requests transformers
       - name: Process ${{ matrix.stock }}
         run: python pipeline.py --stock "${{ matrix.stock }}" --model "${{ github.event.inputs.model }}" --out "runs/${{ matrix.stock }}"
       - uses: actions/upload-artifact@v4
