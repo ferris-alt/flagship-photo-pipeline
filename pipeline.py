@@ -52,18 +52,16 @@ def load_clip():
     from transformers import CLIPModel, CLIPProcessor
     name = "openai/clip-vit-base-patch32"
     model = CLIPModel.from_pretrained(name).eval(); proc = CLIPProcessor.from_pretrained(name)
-    with torch.no_grad():
-        t = proc(text=EXT_PROMPTS + DET_PROMPTS, return_tensors="pt", padding=True)
-        tf = model.get_text_features(**t); tf = tf / tf.norm(dim=-1, keepdim=True)
-    return model, proc, tf
+    return model, proc
 
 
 def clip_exterior_prob(img, ctx):
+    """P(whole car) = softmax mass on the whole-car prompts. Uses logits_per_image (stable across transformers versions)."""
     import torch
-    model, proc, tf = ctx
+    model, proc = ctx
     with torch.no_grad():
-        f = model.get_image_features(**proc(images=img, return_tensors="pt")); f = f / f.norm(dim=-1, keepdim=True)
-        p = (100.0 * f @ tf.T).softmax(-1)[0]
+        inp = proc(text=EXT_PROMPTS + DET_PROMPTS, images=img, return_tensors="pt", padding=True)
+        p = model(**inp).logits_per_image.softmax(-1)[0]
     return float(p[:len(EXT_PROMPTS)].sum())
 
 
