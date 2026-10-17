@@ -22,8 +22,8 @@ CAR_W     = 0.70               # car width as fraction of frame width
 CAR_H_MAX = 0.62               # cap for tall/portrait shots
 ERODE_PX  = 1                  # shave this many px off the mask edge to kill halos
 MAX_UPSCALE = 1.3              # sharpness guard: small cars in portrait shots stay a bit smaller instead of going soft
-SHADOW_OP = 0.55
-REFL_OP   = 0.28
+SHADOW_OP = 0.62
+REFL_OP   = 0.20
 
 
 def fetch(pid, dest):
@@ -79,9 +79,12 @@ def mask_stats(mask, clip_p):
         return "detail", flags + ["whole-frame"], frac
     if bw < 0.35:
         return "detail", flags + ["tiny"], frac
-    # how much of each frame edge the mask covers: a whole car barely touches the edges, a cropped car does
-    top, bot = a[:3].any(0).mean(), a[-3:].any(0).mean(); left, right = a[:, :3].any(1).mean(), a[:, -3:].any(1).mean()
-    if bot > 0.12 or left > 0.30 or right > 0.30 or top > 0.30:
+    # edge contact measured against the CAR's own size: a whole car barely touches the frame (a mirror tip at most);
+    # a cropped car has a straight cut along an edge -> keep it as a real photo (color only)
+    cw, ch = xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
+    top, bot = a[:3].any(0).sum() / cw, a[-3:].any(0).sum() / cw
+    left, right = a[:, :3].any(1).sum() / ch, a[:, -3:].any(1).sum() / ch
+    if bot > 0.04 or top > 0.06 or left > 0.08 or right > 0.08:
         return "detail", flags + [f"cropped(b{bot:.2f} l{left:.2f} r{right:.2f} t{top:.2f})"], frac
     if xs.min() <= 2 or xs.max() >= w - 3: flags.append("edge-touch")
     # holes: filled-bbox area vs mask area inside bbox
@@ -100,6 +103,19 @@ def neutralize(img, mask=None, strength=0.5, cap=0.08):
     return Image.fromarray(np.clip(arr * gains, 0, 255).astype(np.uint8))
 
 
+def ground_line(alpha):
+    """Tire contact points: the lowest car pixel in the left third and in the right third of the car.
+    Returns (xl, yl, xr, yr) in cut coordinates; falls back to a level line at the lowest point."""
+    a = alpha > 128; h, w = a.shape
+    has = a.any(0); bottom = np.where(has, h - 1 - np.argmax(a[::-1], axis=0), -1)
+    third = max(1, w // 3)
+    xl = int(np.argmax(bottom[:third])); xr = w - third + int(np.argmax(bottom[w - third:]))
+    yl, yr = int(bottom[xl]), int(bottom[xr])
+    if yl < 0 or yr < 0 or abs(yl - yr) > 0.25 * h or xr - xl < 0.3 * w:
+        yb = int(bottom.max()); return 0, yb, w - 1, yb
+    return xl, yl, xr, yr
+
+
 def composite(img, mask, plate):
     m = mask
     for _ in range(ERODE_PX): m = m.filter(ImageFilter.MinFilter(3))
@@ -108,20 +124,43 @@ def composite(img, mask, plate):
     bbox = m.getbbox(); cut = cut.crop(bbox)
     s = min(CAR_W * OUT_W / cut.width, CAR_H_MAX * OUT_H / cut.height, MAX_UPSCALE)   # never blow up a small car past 1.3x
     cut = cut.resize((round(cut.width * s), round(cut.height * s)), Image.LANCZOS)
-    x = (OUT_W - cut.width) // 2
-    y = round(FLOOR_Y * OUT_H) - cut.height
+    cw, ch = cut.size
+    A = np.asarray(cut.getchannel("A")).astype(np.float32)
+    xl, yl, xr, yr = ground_line(A)
+    floor = yl + (yr - yl) * (np.arange(cw) - xl) / max(1, xr - xl)          # ground line under every column
+    x = (OUT_W - cw) // 2
+    y = round(FLOOR_Y * OUT_H - (yl + yr) / 2)                                # tire line, not the bbox, sits on FLOOR_Y
     out = plate.convert("RGBA").copy()
-    # floor reflection: flipped, fading, slightly blurred
-    refl = ImageOps.flip(cut)
-    grad = ImageOps.invert(Image.linear_gradient("L").resize(refl.size)).point(lambda v: int(v * REFL_OP))
-    refl.putalpha(ImageChops.multiply(refl.getchannel("A"), grad))
-    refl = refl.filter(ImageFilter.GaussianBlur(2))
-    out.alpha_composite(refl, (x, y + cut.height))
-    # contact shadow: squashed alpha, blurred, under the tires
-    sh = cut.getchannel("A").resize((cut.width, max(8, int(cut.height * 0.12))))
-    sh = sh.filter(ImageFilter.GaussianBlur(max(2, cut.width * 0.015)))
-    shadow = Image.new("RGBA", sh.size, (0, 0, 0, 255)); shadow.putalpha(sh.point(lambda v: int(v * SHADOW_OP)))
-    out.alpha_composite(shadow, (x, y + cut.height - sh.height // 2))
+
+    # 1) floor reflection: each column mirrored about the ground line (correct for 3/4 views), fading out quickly
+    rh = int(ch * 0.45); H2 = ch + rh
+    ys = np.arange(H2)[:, None].astype(np.float32)
+    src_y = np.round(2 * floor[None, :] - ys).astype(int)
+    below = ys > floor[None, :]
+    valid = below & (src_y >= 0) & (src_y < ch)
+    C = np.asarray(cut).astype(np.float32)
+    sy = np.clip(src_y, 0, ch - 1)
+    R = np.take_along_axis(C, np.repeat(sy[:, :, None], 4, axis=2), axis=0)
+    fade = np.clip(1 - (ys - floor[None, :]) / (ch * 0.30), 0, 1) ** 1.5
+    R[..., 3] = np.where(valid, R[..., 3] * fade * REFL_OP, 0)
+    refl = Image.fromarray(np.clip(R, 0, 255).astype(np.uint8), "RGBA").filter(ImageFilter.GaussianBlur(max(2, cw * 0.002)))
+    out.alpha_composite(refl, (x, y))
+
+    # 2) shadows: a soft ambient band along the ground line + tight contact pads under the two tires
+    sh = Image.new("L", (cw + 400, H2 + 200), 0); d = ImageDraw.Draw(sh); ox, oy = 200, 100
+    band = ch * 0.035; ext = cw * 0.04
+    d.polygon([(ox + xl - ext, oy + yl - band * 0.6), (ox + xr + ext, oy + yr - band * 0.6),
+               (ox + xr + ext, oy + yr + band * 0.5), (ox + xl - ext, oy + yl + band * 0.5)], fill=int(255 * SHADOW_OP))
+    sh = sh.filter(ImageFilter.GaussianBlur(max(4, cw * 0.018)))
+    pad = Image.new("L", sh.size, 0); dp = ImageDraw.Draw(pad); pw, ph = cw * 0.07, ch * 0.018
+    for (px, py) in ((xl, yl), (xr, yr)):
+        dp.ellipse([ox + px - pw, oy + py - ph, ox + px + pw, oy + py + ph * 0.8], fill=235)
+    pad = pad.filter(ImageFilter.GaussianBlur(max(2, cw * 0.006)))
+    sha = ImageChops.lighter(sh, pad)
+    shadow = Image.new("RGBA", sha.size, (12, 12, 14, 255)); shadow.putalpha(sha)
+    out.alpha_composite(shadow, (x - ox, y - oy))
+
+    # 3) the car itself, pixels untouched apart from the mild white balance
     out.alpha_composite(cut, (x, y))
     return out.convert("RGB")
 
