@@ -21,6 +21,7 @@ FLOOR_Y   = 0.82               # tire contact line, fraction of height (matches 
 CAR_W     = 0.70               # car width as fraction of frame width
 CAR_H_MAX = 0.62               # cap for tall/portrait shots
 ERODE_PX  = 1                  # shave this many px off the mask edge to kill halos
+MAX_UPSCALE = 1.3              # sharpness guard: small cars in portrait shots stay a bit smaller instead of going soft
 SHADOW_OP = 0.55
 REFL_OP   = 0.28
 
@@ -34,11 +35,45 @@ def fetch(pid, dest):
     return p
 
 
-def mask_stats(mask):
+# ---- whole-car vs part/interior: CLIP zero-shot (the mask alone cannot tell a wheel close-up from a car) ----
+EXT_PROMPTS = ["a photo of a whole car seen from outside with the entire vehicle visible",
+               "a photo of a parked sports car, full body in view, front, side or rear view"]
+DET_PROMPTS = ["a close-up photo of a car wheel, tire or brake",
+               "a close-up photo of a car headlight, taillight, badge, vent, mirror or body panel",
+               "a photo of a car interior: dashboard, seats, steering wheel, door panel or center console",
+               "a close-up photo of a gear shifter, start button, pedals or infotainment screen",
+               "a photo of a car engine bay, open trunk, floor mat or car cover",
+               "a photo of a window sticker, document or paperwork"]
+CLIP_MIN = 0.50
+
+
+def load_clip():
+    import torch
+    from transformers import CLIPModel, CLIPProcessor
+    name = "openai/clip-vit-base-patch32"
+    model = CLIPModel.from_pretrained(name).eval(); proc = CLIPProcessor.from_pretrained(name)
+    with torch.no_grad():
+        t = proc(text=EXT_PROMPTS + DET_PROMPTS, return_tensors="pt", padding=True)
+        tf = model.get_text_features(**t); tf = tf / tf.norm(dim=-1, keepdim=True)
+    return model, proc, tf
+
+
+def clip_exterior_prob(img, ctx):
+    import torch
+    model, proc, tf = ctx
+    with torch.no_grad():
+        f = model.get_image_features(**proc(images=img, return_tensors="pt")); f = f / f.norm(dim=-1, keepdim=True)
+        p = (100.0 * f @ tf.T).softmax(-1)[0]
+    return float(p[:len(EXT_PROMPTS)].sum())
+
+
+def mask_stats(mask, clip_p):
+    """Returns (kind, flags, frac). 'exterior' only if CLIP says whole car AND the mask is a plausible, uncropped car."""
     a = np.asarray(mask) > 127
     h, w = a.shape
-    flags = []
+    flags = [f"clip={clip_p:.2f}"]
     frac = float(a.mean())
+    if clip_p < CLIP_MIN: return "detail", flags + ["not-whole-car"], frac
     if frac < 0.05: return "detail", flags + ["tiny"], frac
     ys, xs = np.where(a)
     bw = (xs.max() - xs.min()) / w; bh = (ys.max() - ys.min()) / h
@@ -46,6 +81,10 @@ def mask_stats(mask):
         return "detail", flags + ["whole-frame"], frac
     if bw < 0.35:
         return "detail", flags + ["tiny"], frac
+    # how much of each frame edge the mask covers: a whole car barely touches the edges, a cropped car does
+    top, bot = a[:3].any(0).mean(), a[-3:].any(0).mean(); left, right = a[:, :3].any(1).mean(), a[:, -3:].any(1).mean()
+    if bot > 0.12 or left > 0.30 or right > 0.30 or top > 0.30:
+        return "detail", flags + [f"cropped(b{bot:.2f} l{left:.2f} r{right:.2f} t{top:.2f})"], frac
     if xs.min() <= 2 or xs.max() >= w - 3: flags.append("edge-touch")
     # holes: filled-bbox area vs mask area inside bbox
     box = a[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
@@ -69,7 +108,7 @@ def composite(img, mask, plate):
     m = m.filter(ImageFilter.GaussianBlur(0.8))
     cut = neutralize(img, mask).convert("RGBA"); cut.putalpha(m)
     bbox = m.getbbox(); cut = cut.crop(bbox)
-    s = min(CAR_W * OUT_W / cut.width, CAR_H_MAX * OUT_H / cut.height)
+    s = min(CAR_W * OUT_W / cut.width, CAR_H_MAX * OUT_H / cut.height, MAX_UPSCALE)   # never blow up a small car past 1.3x
     cut = cut.resize((round(cut.width * s), round(cut.height * s)), Image.LANCZOS)
     x = (OUT_W - cut.width) // 2
     y = round(FLOOR_Y * OUT_H) - cut.height
@@ -126,15 +165,22 @@ def main():
     plate = Image.open(a.plate).convert("RGB")
     assert plate.size == (OUT_W, OUT_H), f"plate must be {OUT_W}x{OUT_H}, got {plate.size}"
     session = new_session(a.model)
+    clipctx = load_clip()
     report = {"stock": a.stock, "model": a.model, "images": []}
     rows = []
     ids = [i for i in man["ids"] if i != man["lead"]]      # the hero stays #1 and is never reprocessed
     for n, pid in enumerate(ids, start=1):
         t0 = time.time()
         src = Image.open(fetch(pid, orig)).convert("RGB")
-        mask = remove(src, session=session, only_mask=True, post_process_mask=True)
-        kind, flags, frac = mask_stats(mask)
-        if pid in ov: kind = ov[pid]; flags.append("override")
+        clip_p = clip_exterior_prob(src, clipctx)
+        if pid in ov and ov[pid] == "detail":
+            mask = None; kind, flags, frac = "detail", [f"clip={clip_p:.2f}", "override"], 0.0
+        elif clip_p < CLIP_MIN and ov.get(pid) != "exterior":       # close-up / interior: skip the mask entirely
+            mask = None; kind, flags, frac = "detail", [f"clip={clip_p:.2f}", "not-whole-car"], 0.0
+        else:
+            mask = remove(src, session=session, only_mask=True, post_process_mask=True)
+            kind, flags, frac = mask_stats(mask, clip_p)
+            if pid in ov: kind = ov[pid]; flags.append("override")
         if kind == "exterior": result = composite(src, mask, plate)
         else: result = normalize_detail(src)
         name = f"{n:03d}-{kind}-{pid[-8:]}.jpg"
