@@ -1,0 +1,75 @@
+# .github/workflows/process.yml  — one job per car, runs in parallel
+name: process-gallery
+on:
+  workflow_dispatch:
+    inputs:
+      stocks:
+        description: "Comma-separated stock numbers, or 'all'"
+        default: "all"
+      model:
+        description: "rembg model"
+        default: "birefnet-general"
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        run: |
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json, os
+          man = json.load(open("manifest.json"))
+          req = os.environ.get("STOCKS", "all")
+          stocks = list(man) if req.strip() == "all" else [s.strip() for s in req.split(",") if s.strip()]
+          print("matrix=" + json.dumps({"stock": stocks}))
+          EOF
+        env:
+          STOCKS: ${{ github.event.inputs.stocks }}
+
+  car:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Cache rembg model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-${{ github.event.inputs.model }}
+      - run: pip install "rembg[cpu]" pillow numpy requests
+      - name: Process ${{ matrix.stock }}
+        run: python pipeline.py --stock "${{ matrix.stock }}" --model "${{ github.event.inputs.model }}" --out "runs/${{ matrix.stock }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: car-${{ matrix.stock }}
+          path: runs/${{ matrix.stock }}
+          retention-days: 90
+      # Backup of the untouched originals as a release asset (kept until deleted), and the processed set
+      # on branch results/<stock> so it can be read over raw.githubusercontent.com from the browser.
+      - name: Publish originals (release) + results (branch)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          S: ${{ matrix.stock }}
+        run: |
+          set -e
+          (cd "runs/$S" && zip -qr "../../originals-$S.zip" originals)
+          gh release delete "originals-$S" -y --cleanup-tag 2>/dev/null || true
+          gh release create "originals-$S" "originals-$S.zip" --title "Originals $S" \
+            --notes "Untouched original gallery photos for $S, downloaded from the DealerCenter CDN before processing."
+          rm -rf pub && mkdir pub && cp -r "runs/$S/out" "runs/$S/qa" "runs/$S/report.json" pub/
+          cd pub && git init -q && git checkout -q -b "results/$S" && git add -A
+          git -c user.name=pipeline -c user.email=pipeline@users.noreply.github.com commit -qm "Results $S"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "results/$S"
